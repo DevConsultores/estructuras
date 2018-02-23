@@ -1,0 +1,104 @@
+################################################################################
+# Docker compose Drupal full dev stack.
+#
+# A single Docker compose file that try to simply and quickly setup a full
+# Drupal development environment.
+#
+# Project page:
+#   https://github.com/Mogtofu33/docker-compose-drupal
+#
+# Quick set-up:
+#  Copy this file, rename to docker-compose.yml, comment or remove services
+#  definition based on your needs.
+#  Copy and rename default.env to .env
+#  Launch:
+#    docker-compose up
+#
+# You can check your config after editing this file with:
+#   docker-compose config
+#
+# Services settings are in config folder, check and adapt to your needs.
+#
+# For more information on docker compose file structure:
+# @see https://docs.docker.com/compose/
+#
+################################################################################
+version: '2'
+services:
+  ## Optionnal Docker ui, uncomment to enable.
+  nginx:
+    image: nginx:stable
+    networks:
+      - proxy-tier
+    expose:
+      - "80"
+    links:
+#       - mysql
+#       - memcache
+#       - redis
+       - phpfpm
+    volumes:
+      - /etc/timezone:/etc/timezone
+      - ${HOST_WEB_ROOT}:/usr/share/nginx/html
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/mime.types:/etc/nginx/mime.types
+      - ./config/nginx/fastcgi_params:/etc/nginx/fastcgi_params
+      - ${HOST_LOGS_ROOT}:/var/log/nginx
+    env_file: .env
+    environment:
+      - CONTAINER_NAME=adsdev
+      - VIRTUAL_HOST=ads.devconsultores.com
+      - VIRTUAL_PORT=80
+      - VIRTUAL_NETWORK=nginx-proxy
+    restart: always
+  phpfpm:
+    build: ./build/php7fpm
+    networks:
+      - proxy-tier
+    expose:
+      - "9000"
+#    links:
+#       - mysql
+#       - memcache
+#       - redis
+    volumes:
+      - /etc/timezone:/etc/timezone
+      - ${HOST_WEB_ROOT}:/var/www/html
+      - ./config/php7:/usr/local/etc
+      - ${HOST_LOGS_ROOT}:/var/log/php
+    env_file: .env
+    environment:
+      - CONTAINER_NAME=phpfpm
+    restart: always
+#  mysql:
+#    image: mariadb:latest
+#    expose:
+#      - "3306"
+#    volumes:
+#      - /etc/timezone:/etc/timezone
+#      - ${HOST_LOGS_ROOT}:/var/log/mysql
+#      - ${HOST_DATABASE_MYSQL}:/var/lib/mysql
+#      - ./config/mysql/my.cnf:/etc/mysql/my.cnf
+#    env_file: .env
+#    environment:
+#      - CONTAINER_NAME=mysql
+#    restart: always
+#  memcache:
+#    image: memcached:alpine
+#    expose:
+#      - "11211"
+#    environment:
+#      - CONTAINER_NAME=memcache
+#    restart: always
+#    volumes:
+#      - /etc/timezone:/etc/timezone
+#  redis:
+#    image: wodby/redis:4.0-2.1.4
+#     image: wodby/redis:3.2-2.1.4
+#    volumes:
+#      - /etc/timezone:/etc/timezone
+
+networks:
+  proxy-tier:
+    external:
+      name: nginx-proxy
